@@ -1,0 +1,33 @@
+workflows:
+  mahalaxmi-android-debug:
+    name: Mahalaxmi General Store POS - Android APK
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      java: 17
+    scripts:
+      - name: Extract POS Android project
+        script: |
+          set -e
+          rm -rf "$CM_BUILD_DIR/android" "$CM_BUILD_DIR/Kirana_POS_Mahalaxmi_General_Store"
+          unzip -q "$CM_BUILD_DIR/Mahalaxmi_General_Store_POS_NoGST.zip" -d "$CM_BUILD_DIR"
+          PROJECT_DIR="$CM_BUILD_DIR/Kirana_POS_Mahalaxmi_General_Store"
+          test -f "$PROJECT_DIR/android/settings.gradle"
+          cp -R "$PROJECT_DIR/android" "$CM_BUILD_DIR/android"
+          test -f "$CM_BUILD_DIR/android/settings.gradle"
+          test -f "$CM_BUILD_DIR/android/build.gradle"
+      - name: Set Android SDK location
+        script: echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Install Gradle 8.9
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR"
+          curl -L --fail --silent --show-error https://services.gradle.org/distributions/gradle-8.9-bin.zip -o gradle.zip
+          unzip -q gradle.zip
+      - name: Build Android debug APK
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/android"
+          "$CM_BUILD_DIR/gradle-8.9/bin/gradle" assembleDebug --no-daemon
+    artifacts:
+      - android/app/build/outputs/**/*.apk
